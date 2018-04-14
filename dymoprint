@@ -18,27 +18,6 @@
 # Please beware that DEV_NODE must be set to None when not used, else you will
 # be bitten by the NameError exception.
 
-
-DESCRIPTION = 'Linux Software to print with LabelManager PnP from Dymo\n written in Python'
-DEV_CLASS       = 3
-DEV_VENDOR      = 0x0922
-DEV_PRODUCT     = 0x1002
-#DEV_PRODUCT     = 0x1001
-DEV_NODE        = None
-DEV_NAME        = 'Dymo LabelManager PnP'
-#FONT_FILENAME  = '/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf'
-FONT_CONFIG = {'regular':'/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-R.ttf',     # regular font
-               'bold':'/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-B.ttf',        # bold font
-               'italic':'/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-RI.ttf',       # italic font
-               'narrow':'/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-C.ttf'    # narrow/condensed
-               }
-FONT_SIZERATIO  = 7./8
-#CONFIG_FILE     = '.dymoprint'
-CONFIG_FILE     = 'dymoprint.ini'
-VERSION         = "0.3.4 (2016-03-14)"
-USE_QR          = True
-USE_BARCODE     = True
-
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -56,12 +35,34 @@ import argparse
 from ConfigParser import SafeConfigParser
 try:
     from pyqrcode import QRCode
-except Exception, e_qrcode:
+    USE_QR = True
+except Exception as e_qrcode:
     USE_QR = False
 try:
     import barcode
-except Exception, e_barcode:
+    USE_BARCODE = True
+except Exception as e_barcode:
     USE_BARCODE = False
+
+
+DESCRIPTION = 'Linux Software to print with LabelManager PnP from Dymo\n written in Python'
+DEV_CLASS = 3
+DEV_VENDOR = 0x0922
+DEV_PRODUCT = 0x1002
+# DEV_PRODUCT     = 0x1001
+DEV_NODE = None
+DEV_NAME = 'Dymo LabelManager PnP'
+# FONT_FILENAME  = '/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf'
+FONT_CONFIG = {
+    'regular': '/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-R.ttf',  # regular font
+    'bold': '/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-B.ttf',  # bold font
+    'italic': '/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-RI.ttf',  # italic font
+    'narrow': '/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-C.ttf',  # narrow/condensed
+}
+FONT_SIZERATIO = 7./8
+# CONFIG_FILE = '.dymoprint'
+CONFIG_FILE = 'dymoprint.ini'
+VERSION = "0.3.4 (2016-03-14)"
 
 
 class DymoLabeler:
@@ -135,7 +136,8 @@ class DymoLabeler:
     def tapeColor(self, value):
         """Set the tape color. (MLF)"""
 
-        if value < 0: raise ValueError
+        if value < 0:
+            raise ValueError
         cmd = [self._ESC, ord('C'), value]
         self.buildCommand(cmd)
 
@@ -190,10 +192,10 @@ class DymoLabeler:
 
         self.statusRequest()
         response = self.sendCommand()
-        print response
+        print(response)
 
     def printLabel(self, lines, margin=56*2):
-        """Print the label described by lines. (Automatically split label if 
+        """Print the label described by lines. (Automatically split label if
            larger than maxLines)"""
 
         while len(lines) > self.maxLines + 1:
