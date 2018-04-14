@@ -33,6 +33,7 @@ import termios
 import textwrap
 import argparse
 from ConfigParser import SafeConfigParser
+from xdg.BaseDirectory import xdg_config_home
 try:
     from pyqrcode import QRCode
     USE_QR = True
@@ -388,18 +389,26 @@ def access_error(dev):
 
 
 ''' reading config file, input: 'filename' '''
-def read_config(conf_file):
+def read_config():
     global FONT_CONFIG
     conf = SafeConfigParser(FONT_CONFIG)
-    if not conf.read(conf_file):
-        print('# Config file "%s" not found: writing new config file.\n' %conf_file)
-        write_config(conf_file)
+
+    config_paths = [os.path.dirname(sys.argv[0]), xdg_config_home, '/etc/dymoprint']
+
+    config_files = map(lambda x: os.path.join(x, CONFIG_FILE), config_paths)
+    config_file = next((x for x in config_files if os.path.isfile(x)), None)
+
+    if not config_file:
+        config_file = os.path.join(xdg_config_home, CONFIG_FILE)
+        print('# Config file "%s" not found: writing new config file.\n' % config_file)
+        write_config(config_file)
     else:
+        conf.read(config_file)
         # reading FONTS section
-        if not 'FONTS' in conf.sections():
-            die('! config file "%s" not valid. Please change or remove.' %conf_file)
+        if 'FONTS' not in conf.sections():
+            die('! config file "%s" not valid. Please change or remove.' % conf_file)
         for key in FONT_CONFIG.keys():
-            FONT_CONFIG[key] = conf.get('FONTS',key)
+            FONT_CONFIG[key] = conf.get('FONTS', key)
         # more sections later ..
 
 
@@ -460,8 +469,7 @@ def main(args):
         die(access_error(dev))
 
     # read config file
-    conf_path = os.path.dirname(sys.argv[0])
-    read_config(conf_path+'/'+CONFIG_FILE)
+    read_config()
 
     labeltext = args.text
     # select font style and offset from parameter
@@ -476,7 +484,7 @@ def main(args):
     else:
         FONT_FILENAME = FONT_CONFIG['regular']
 
-    if args.u <> None:
+    if args.u is not None:
         if os.path.isfile(args.u):
             FONT_FILENAME = args.u
         else:
@@ -484,10 +492,10 @@ def main(args):
 
     # check if barcode, qrcode or text should be printed, use frames only on text
     if args.qr:
-        if USE_QR == False:
+        if USE_QR is False:
             die("Error: %s" % e_qrcode)
         # create QR object from first string
-        code = QRCode(labeltext[0],error='M')
+        code = QRCode(labeltext[0], error='M')
         qr_text = code.text().split()
 
         # create an empty label image
@@ -499,14 +507,14 @@ def main(args):
         labeldraw = ImageDraw.Draw(labelbitmap)
 
         # write the qr-code into the empty image
-        for i,line in enumerate(qr_text):
+        for i, line in enumerate(qr_text):
             for j in range(len(line)):
-                if line[j]=='1':
-                    pix=scaling((j*qr_scale,i*qr_scale+qr_offset),qr_scale)
+                if line[j] == '1':
+                    pix = scaling((j*qr_scale,i*qr_scale+qr_offset),qr_scale)
                     labeldraw.point(pix,255)
         del labeldraw
     elif args.c:
-        if USE_BARCODE == False:
+        if USE_BARCODE is False:
             die("Error: %s" % e_barcode)
         code = barcode.get(args.c, ' '.join(labeltext), writer=ImageWriter())
         labelbitmap = code.render({
@@ -517,10 +525,10 @@ def main(args):
             'background': 'black',
             'foreground': 'white',
             })
-        #labelbitmap.show()
+        # labelbitmap.show()
         labelwidth, labelheight = labelbitmap.size
     else:
-        if args.f == None:
+        if args.f is None:
             fontoffset = 0
         else:
             fontoffset = min(args.f, 3)
@@ -535,7 +543,7 @@ def main(args):
         labeldraw = ImageDraw.Draw(labelbitmap)
 
         # draw frame into empty image
-        if args.f <> None:
+        if args.f is not None:
             labeldraw.rectangle(((0,0),(labelwidth-1,labelheight-1)),fill=255)
             labeldraw.rectangle(((fontoffset,fontoffset),(labelwidth-(fontoffset+1),labelheight-(fontoffset+1))),fill=0)
 
@@ -558,7 +566,7 @@ def main(args):
         labelrows]
 
     # print or show the label
-    if args.v == True:
+    if args.v is True:
         print('Demo mode: showing label..')
         # fix size, adding print borders
         labelimage = Image.new('L', (56+labelwidth+56, labelheight))
